@@ -22,6 +22,8 @@ def parse_args():
     p.add_argument("--clip_model", default="ViT-B-32")
     p.add_argument("--clip_pretrained", default="openai")
     p.add_argument("--batch_size", type=int, default=2048)
+    p.add_argument("--max_facts", type=int, default=1000000,
+                   help="Cap facts for faster indexing (1M is enough for retrieval)")
     p.add_argument("--device", default="cuda")
     return p.parse_args()
 
@@ -37,11 +39,17 @@ def main():
     facts = load_visual_genome_facts(args.vg_dir)
     print(f"  → {len(facts)} facts loaded")
 
+    if args.max_facts and len(facts) > args.max_facts:
+        print(f"  Capping to {args.max_facts:,} facts (from {len(facts):,})")
+        import random; random.shuffle(facts)
+        facts = facts[:args.max_facts]
+
     print("Building FAISS index...")
     indexer = SceneGraphIndexer(encoder, dim=512)
     indexer.build(facts, batch_size=args.batch_size,
                   index_path=args.index_path,
-                  metadata_path=args.metadata_path)
+                  metadata_path=args.metadata_path,
+                  num_workers=4)
     print(f"Done. Index saved to {args.index_path}")
 
 

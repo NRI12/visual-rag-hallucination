@@ -68,16 +68,32 @@ class SceneGraphIndexer:
         self.index = None
         self.metadata: List[Dict] = []
 
-    def build(self, facts: List[Dict], batch_size: int = 512,
-              index_path: str = None, metadata_path: str = None):
+    def build(self, facts: List[Dict], batch_size: int = 2048,
+              index_path: str = None, metadata_path: str = None,
+              num_workers: int = 4):
         """Encode all facts and build FAISS flat index."""
         texts = [f["fact"] for f in facts]
         all_embeddings = []
 
-        logger.info(f"Encoding {len(texts)} facts in batches of {batch_size}...")
-        for i in tqdm(range(0, len(texts), batch_size), desc="Encoding facts"):
-            batch = texts[i: i + batch_size]
-            embs = self.encoder.encode_text(batch)
+        logger.info(f"Encoding {len(texts)} facts in batches of {batch_size} "
+                    f"(num_workers={num_workers})...")
+
+        # Pre-tokenize on CPU in parallel, encode on GPU
+        from torch.utils.data import DataLoader, Dataset
+
+        class TextDataset(Dataset):
+            def __init__(self, texts, tokenizer):
+                self.texts = texts
+                self.tokenizer = tokenizer
+            def __len__(self): return len(self.texts)
+            def __getitem__(self, idx): return self.texts[idx]
+
+        dataset = TextDataset(texts, self.encoder.tokenizer)
+        loader = DataLoader(dataset, batch_size=batch_size,
+                            num_workers=num_workers, pin_memory=True)
+
+        for batch_texts in tqdm(loader, desc="Encoding facts"):
+            embs = self.encoder.encode_text(list(batch_texts))
             all_embeddings.append(embs)
 
         embeddings = np.vstack(all_embeddings).astype("float32")
