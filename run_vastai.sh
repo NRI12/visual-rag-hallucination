@@ -16,8 +16,13 @@ echo " Visual-RAG Hallucination — Vast.ai Run"
 echo "========================================"
 
 # ---------- 1. System deps ----------
-echo "[1/7] Installing system packages..."
-apt-get update -qq && apt-get install -y -qq git wget unzip aria2
+# pytorch/pytorch image already has git, wget, unzip
+# Only install aria2 if missing (used for fast parallel downloads)
+echo "[1/7] Checking system packages..."
+if ! command -v aria2c &>/dev/null; then
+    apt-get install -y -qq --no-install-recommends aria2 2>/dev/null || \
+    pip install -q aria2  # fallback: use wget if aria2 unavailable
+fi
 
 # ---------- 2. Clone repo ----------
 echo "[2/7] Cloning repository..."
