@@ -1,0 +1,41 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Data (too large for git)
+data/
+*.index
+*.json.zip
+
+# Model checkpoints
+checkpoints/
+*.bin
+*.safetensors
+*.pt
+*.pth
+
+# Huggingface cache
+hf_cache/
+
+# Logs
+logs/
+*.log
+
+# Results (optionally track)
+# results/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Env
+.env
+venv/
+.venv/
+
+# IDE
+.vscode/
+.idea/

@@ -1,0 +1,41 @@
+# Visual-RAG Hallucination Grounding — Default Config
+
+model:
+  vlm_name: "llava-hf/llava-1.5-7b-hf"   # base VLM
+  clip_model: "ViT-L-14"
+  clip_pretrained: "openai"
+  device: "cuda"
+  dtype: "float16"                          # use bf16 on A100
+
+retrieval:
+  index_path: "data/vg_faiss.index"
+  metadata_path: "data/vg_metadata.json"
+  top_k: 5                                  # facts retrieved per query
+  score_threshold: 0.25                     # cosine sim cutoff
+
+data:
+  visual_genome_dir: "data/visual_genome"
+  pope_dir: "data/pope"
+  hallusionbench_dir: "data/hallusionbench"
+  coco_dir: "data/coco/val2014"
+  max_samples: 500                          # set null for full eval
+
+training:
+  use_lora: true
+  lora_r: 16
+  lora_alpha: 32
+  lora_target_modules: ["q_proj", "v_proj"]
+  batch_size: 4
+  gradient_accumulation: 4
+  learning_rate: 2e-4
+  num_epochs: 3
+  output_dir: "checkpoints"
+
+evaluation:
+  metrics: ["accuracy", "f1", "chair_s", "chair_i"]
+  output_dir: "results"
+  save_predictions: true
+
+logging:
+  level: "INFO"
+  log_file: "logs/run.log"
