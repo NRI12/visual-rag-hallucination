@@ -6,7 +6,7 @@
 # ============================================================
 set -euo pipefail
 
-REPO_URL="https://github.com/YOUR_USERNAME/visual-rag-hallucination.git"
+REPO_URL="https://github.com/NRI12/visual-rag-hallucination.git"
 WORKDIR="/workspace/visual-rag-hallucination"
 HF_CACHE="/workspace/hf_cache"
 DATA_DIR="$WORKDIR/data"
