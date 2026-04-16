@@ -77,6 +77,7 @@ if [ ! -d "$DATA_DIR/coco/val2014" ]; then
             "http://images.cocodataset.org/zips/val2014.zip"
     fi
     unzip -o "$DATA_DIR/coco/val2014.zip" -d "$DATA_DIR/coco/" && \
+    rm -f "$DATA_DIR/coco/val2014.zip" && \
     echo "  COCO val2014 OK" || echo "  COCO download failed — check disk space"
 fi
 
@@ -88,6 +89,7 @@ if [ ! -f "$DATA_DIR/visual_genome/relationships.json" ]; then
         "https://homes.cs.washington.edu/~ranjay/visualgenome/data/dataset/attributes.json.zip" && \
     unzip -o "$DATA_DIR/visual_genome/relationships.json.zip" -d "$DATA_DIR/visual_genome/" && \
     unzip -o "$DATA_DIR/visual_genome/attributes.json.zip"   -d "$DATA_DIR/visual_genome/" && \
+    rm -f "$DATA_DIR/visual_genome"/*.zip && \
     echo "  Visual Genome OK" || echo "  Visual Genome download failed"
 fi
 
