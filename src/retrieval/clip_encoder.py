@@ -17,6 +17,8 @@ class CLIPEncoder:
         )
         self.tokenizer = open_clip.get_tokenizer(model_name)
         self.model.to(device).eval()
+        # infer embedding dim from model
+        self.embed_dim = self.model.visual.output_dim
 
     @torch.no_grad()
     def encode_image(self, image: Union[Image.Image, List[Image.Image]]) -> np.ndarray:

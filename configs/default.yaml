@@ -2,7 +2,7 @@
 
 model:
   vlm_name: "llava-hf/llava-1.5-7b-hf"   # base VLM
-  clip_model: "ViT-L-14"
+  clip_model: "ViT-B-32"
   clip_pretrained: "openai"
   device: "cuda"
   dtype: "float16"                          # use bf16 on A100

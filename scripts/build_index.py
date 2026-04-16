@@ -19,9 +19,9 @@ def parse_args():
     p.add_argument("--vg_dir", default="data/visual_genome")
     p.add_argument("--index_path", default="data/vg_faiss.index")
     p.add_argument("--metadata_path", default="data/vg_metadata.json")
-    p.add_argument("--clip_model", default="ViT-L-14")
+    p.add_argument("--clip_model", default="ViT-B-32")
     p.add_argument("--clip_pretrained", default="openai")
-    p.add_argument("--batch_size", type=int, default=512)
+    p.add_argument("--batch_size", type=int, default=2048)
     p.add_argument("--device", default="cuda")
     return p.parse_args()
 
@@ -38,7 +38,7 @@ def main():
     print(f"  → {len(facts)} facts loaded")
 
     print("Building FAISS index...")
-    indexer = SceneGraphIndexer(encoder, dim=768)
+    indexer = SceneGraphIndexer(encoder, dim=512)
     indexer.build(facts, batch_size=args.batch_size,
                   index_path=args.index_path,
                   metadata_path=args.metadata_path)
