@@ -4,7 +4,7 @@
 # Run this on the remote GPU instance via SSH:
 #   bash run_vastai.sh
 # ============================================================
-set -euo pipefail
+set -uo pipefail
 
 REPO_URL="https://github.com/NRI12/visual-rag-hallucination.git"
 WORKDIR="/workspace/visual-rag-hallucination"
@@ -43,42 +43,52 @@ echo "[4/7] Downloading datasets..."
 mkdir -p "$DATA_DIR/visual_genome" "$DATA_DIR/pope" \
          "$DATA_DIR/hallusionbench" "$DATA_DIR/coco"
 
-# POPE annotations (from GitHub release)
+# POPE annotations (from GitHub raw)
 if [ ! -f "$DATA_DIR/pope/coco_pope_adversarial.json" ]; then
     echo "  Downloading POPE..."
-    wget -q -P "$DATA_DIR/pope" \
-        "https://github.com/AoiDragon/POPE/raw/main/e3e39262c85a6a83f26cf5094022a782cb0df58d/output/coco/coco_pope_adversarial.json" \
-        "https://github.com/AoiDragon/POPE/raw/main/e3e39262c85a6a83f26cf5094022a782cb0df58d/output/coco/coco_pope_popular.json" \
-        "https://github.com/AoiDragon/POPE/raw/main/e3e39262c85a6a83f26cf5094022a782cb0df58d/output/coco/coco_pope_random.json"
+    BASE="https://raw.githubusercontent.com/AoiDragon/POPE/main/output/coco"
+    wget -q --show-progress -P "$DATA_DIR/pope" \
+        "$BASE/coco_pope_adversarial.json" \
+        "$BASE/coco_pope_popular.json" \
+        "$BASE/coco_pope_random.json" && \
+        echo "  POPE OK" || echo "  POPE download failed — skipping"
 fi
 
 # HallusionBench
 if [ ! -f "$DATA_DIR/hallusionbench/HallusionBench.json" ]; then
     echo "  Downloading HallusionBench..."
-    wget -q -O /tmp/hallusionbench.zip \
-        "https://github.com/tianyi-lab/HallusionBench/archive/refs/heads/main.zip"
-    unzip -q /tmp/hallusionbench.zip -d /tmp/
-    cp -r /tmp/HallusionBench-main/. "$DATA_DIR/hallusionbench/"
+    wget --show-progress -O /tmp/hallusionbench.zip \
+        "https://github.com/tianyi-lab/HallusionBench/archive/refs/heads/main.zip" && \
+    unzip -o /tmp/hallusionbench.zip -d /tmp/ && \
+    cp -r /tmp/HallusionBench-main/. "$DATA_DIR/hallusionbench/" && \
+    echo "  HallusionBench OK" || echo "  HallusionBench download failed — skipping"
 fi
 
-# COCO val2014 (subset via aria2 for speed — first 5GB)
+# COCO val2014
 if [ ! -d "$DATA_DIR/coco/val2014" ]; then
-    echo "  Downloading COCO val2014 (this may take a while)..."
+    echo "  Downloading COCO val2014 (~7GB, may take 10-20 min)..."
     mkdir -p "$DATA_DIR/coco"
-    aria2c -q -x 8 -s 8 \
-        "http://images.cocodataset.org/zips/val2014.zip" \
-        -d "$DATA_DIR/coco"
-    unzip -q "$DATA_DIR/coco/val2014.zip" -d "$DATA_DIR/coco/"
+    if command -v aria2c &>/dev/null; then
+        aria2c -x 8 -s 8 \
+            "http://images.cocodataset.org/zips/val2014.zip" \
+            -d "$DATA_DIR/coco"
+    else
+        wget --show-progress -P "$DATA_DIR/coco" \
+            "http://images.cocodataset.org/zips/val2014.zip"
+    fi
+    unzip -o "$DATA_DIR/coco/val2014.zip" -d "$DATA_DIR/coco/" && \
+    echo "  COCO val2014 OK" || echo "  COCO download failed — check disk space"
 fi
 
 # Visual Genome relationships + attributes
 if [ ! -f "$DATA_DIR/visual_genome/relationships.json" ]; then
     echo "  Downloading Visual Genome..."
-    wget -q -P "$DATA_DIR/visual_genome" \
+    wget --show-progress -P "$DATA_DIR/visual_genome" \
         "https://homes.cs.washington.edu/~ranjay/visualgenome/data/dataset/relationships.json.zip" \
-        "https://homes.cs.washington.edu/~ranjay/visualgenome/data/dataset/attributes.json.zip"
-    unzip -q "$DATA_DIR/visual_genome/relationships.json.zip" -d "$DATA_DIR/visual_genome/"
-    unzip -q "$DATA_DIR/visual_genome/attributes.json.zip"   -d "$DATA_DIR/visual_genome/"
+        "https://homes.cs.washington.edu/~ranjay/visualgenome/data/dataset/attributes.json.zip" && \
+    unzip -o "$DATA_DIR/visual_genome/relationships.json.zip" -d "$DATA_DIR/visual_genome/" && \
+    unzip -o "$DATA_DIR/visual_genome/attributes.json.zip"   -d "$DATA_DIR/visual_genome/" && \
+    echo "  Visual Genome OK" || echo "  Visual Genome download failed"
 fi
 
 # ---------- 5. Build FAISS index ----------
