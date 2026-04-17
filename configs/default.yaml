@@ -14,6 +14,7 @@ retrieval:
   score_threshold: 0.25                     # cosine sim cutoff
 
 data:
+  data_root: "data"
   visual_genome_dir: "data/visual_genome"
   pope_dir: "data/pope"
   hallusionbench_dir: "data/hallusionbench"
