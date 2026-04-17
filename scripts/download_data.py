@@ -55,42 +55,63 @@ def download_pope(data_dir: str) -> bool:
 
 def download_hallusionbench(data_dir: str) -> bool:
     hb_dir = os.path.join(data_dir, "hallusionbench")
-    marker = os.path.join(hb_dir, "HallusionBench.json")
-    # Also check if images already present
-    img_dir = os.path.join(hb_dir, "images")
-    has_images = os.path.exists(img_dir) and len(os.listdir(img_dir)) > 0
-
-    if os.path.exists(marker) and has_images:
-        print("  HallusionBench already downloaded, skipping.")
-        return True
-
     os.makedirs(hb_dir, exist_ok=True)
-    zip_path = "/tmp/hallusionbench.zip"
-    url = "https://github.com/tianyi-lab/HallusionBench/archive/refs/heads/main.zip"
 
-    if not download_file(url, zip_path, "HallusionBench (~300MB)"):
-        return False
+    # Step 1: JSON annotations from GitHub
+    json_path = os.path.join(hb_dir, "HallusionBench.json")
+    if not os.path.exists(json_path):
+        zip_path = "/tmp/hallusionbench.zip"
+        url = "https://github.com/tianyi-lab/HallusionBench/archive/refs/heads/main.zip"
+        if not download_file(url, zip_path, "HallusionBench JSON (~5MB)"):
+            return False
+        print("  Extracting...")
+        with zipfile.ZipFile(zip_path, "r") as zf:
+            zf.extractall("/tmp/")
+        src = "/tmp/HallusionBench-main"
+        for item in os.listdir(src):
+            s = os.path.join(src, item)
+            d = os.path.join(hb_dir, item)
+            if os.path.isdir(s):
+                shutil.copytree(s, d, dirs_exist_ok=True)
+            else:
+                shutil.copy2(s, d)
+        os.remove(zip_path)
+        print("  JSON OK ✓")
 
-    print("  Extracting HallusionBench...")
-    with zipfile.ZipFile(zip_path, "r") as zf:
-        zf.extractall("/tmp/")
+    # Step 2: Images from HuggingFace dataset
+    img_dir = os.path.join(hb_dir, "images")
+    n_existing = sum(len(f) for _, _, f in os.walk(img_dir)) if os.path.exists(img_dir) else 0
 
-    src = "/tmp/HallusionBench-main"
-    # Copy ALL contents including images/ subdirectory
-    for item in os.listdir(src):
-        s = os.path.join(src, item)
-        d = os.path.join(hb_dir, item)
-        if os.path.isdir(s):
-            shutil.copytree(s, d, dirs_exist_ok=True)
-        else:
-            shutil.copy2(s, d)
+    if n_existing < 100:
+        print("  Downloading HallusionBench images from HuggingFace...")
+        try:
+            from huggingface_hub import snapshot_download
+            snapshot_download(
+                repo_id="junyangwang0410/HallusionBench",
+                repo_type="dataset",
+                local_dir=hb_dir,
+                ignore_patterns=["*.parquet", "*.arrow"],
+            )
+            n_images = sum(len(f) for _, _, f in os.walk(img_dir))
+            print(f"  Images OK ✓ ({n_images} images)")
+        except Exception as e:
+            print(f"  HuggingFace download failed: {e}")
+            print("  Trying direct image zip from GitHub LFS...")
+            # Fallback: wget from GitHub releases
+            img_url = ("https://github.com/tianyi-lab/HallusionBench/"
+                       "releases/download/v1.0/images.zip")
+            zip_path = os.path.join(hb_dir, "images.zip")
+            if download_file(img_url, zip_path, "HallusionBench images"):
+                with zipfile.ZipFile(zip_path, "r") as zf:
+                    zf.extractall(hb_dir)
+                os.remove(zip_path)
+                n_images = sum(len(f) for _, _, f in os.walk(img_dir))
+                print(f"  Images OK ✓ ({n_images} images)")
+            else:
+                print("  WARNING: Images not available — visual eval will use dummy images")
+    else:
+        print(f"  HallusionBench images already present ({n_existing} files), skipping.")
 
-    os.remove(zip_path)
-    # Check images were extracted
-    n_images = sum(
-        len(files) for _, _, files in os.walk(img_dir)
-    ) if os.path.exists(img_dir) else 0
-    print(f"  HallusionBench OK ✓ ({n_images} images)")
     return True
 
 

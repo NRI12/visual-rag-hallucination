@@ -66,30 +66,34 @@ class HallusionBenchDataset(Dataset):
                       or item.get("label") or "")
             gt = normalize_gt(gt_raw)
 
-            img_src = (item.get("image_src") or item.get("image_path")
-                       or item.get("image") or "")
+            # HallusionBench actual keys: "filename" and "visual_input"
+            # visual_input: "figure" = has image, "text" = text-only
+            img_src = (item.get("filename") or item.get("image_src")
+                       or item.get("image_path") or item.get("image") or "")
             img_src = img_src.lstrip("/") if img_src else ""
+            visual_input = item.get("visual_input", "figure")
+            is_visual = visual_input == "figure" and bool(img_src)
 
             self.data.append({
                 "question":      item.get("question", item.get("text", "")),
                 "gt_answer":     gt,
                 "gt_answer_raw": gt_raw,
                 "image_src":     img_src,
+                "visual_input":  visual_input,
+                "is_visual":     is_visual,
                 "category":      item.get("category", ""),
                 "subcategory":   item.get("sub_category", ""),
-                "item_id":       item.get("index", idx),
+                "set_id":        item.get("set_id", ""),
+                "item_id":       item.get("question_id", idx),
             })
 
         if max_samples:
             self.data = self.data[:max_samples]
 
-        with_img = sum(1 for d in self.data if d["image_src"])
+        with_img = sum(1 for d in self.data if d["is_visual"])
+        text_only = len(self.data) - with_img
         logger.info(f"Loaded {len(self.data)} HallusionBench samples "
-                    f"({with_img} with images).")
-
-        # Warn if no images found
-        if with_img == 0:
-            logger.warning("No image paths found — check dataset structure!")
+                    f"({with_img} visual, {text_only} text-only).")
 
     def __len__(self):
         return len(self.data)
@@ -99,14 +103,15 @@ class HallusionBenchDataset(Dataset):
         img_src = item.get("image_src", "")
 
         item["image"] = None
-        if img_src:
-            # HallusionBench image paths: "images/VD_E1/VD_E1_1.png"
-            # or just filename, or category/filename
+        if img_src and item.get("is_visual"):
+            # filename in HallusionBench is like "VD_E1_1.png" or "VG_E1_1.png"
+            # images stored under data/hallusionbench/images/<set_id>/<filename>
+            set_id = item.get("set_id", "")
             candidates = [
-                os.path.join(self.data_dir, img_src),
+                os.path.join(self.data_dir, "images", set_id, img_src),
                 os.path.join(self.data_dir, "images", img_src),
-                os.path.join(self.data_dir, "images",
-                             os.path.basename(img_src)),
+                os.path.join(self.data_dir, set_id, img_src),
+                os.path.join(self.data_dir, img_src),
                 os.path.join(self.data_dir, os.path.basename(img_src)),
             ]
             for path in candidates:
@@ -117,6 +122,6 @@ class HallusionBenchDataset(Dataset):
                         logger.warning(f"Cannot open {path}: {e}")
                     break
             else:
-                logger.debug(f"Image not found for: {img_src}")
+                logger.debug(f"Image not found: {img_src} (set_id={set_id})")
 
         return item
