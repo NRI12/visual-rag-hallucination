@@ -5,7 +5,7 @@ import logging
 from tqdm import tqdm
 from typing import Dict, List
 
-from src.evaluation.metrics import compute_pope_metrics, compute_chair
+from visual_rag.evaluation.metrics import compute_pope_metrics, compute_chair
 
 logger = logging.getLogger(__name__)
 

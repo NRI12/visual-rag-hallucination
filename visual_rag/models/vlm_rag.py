@@ -3,7 +3,7 @@ import torch
 import logging
 from PIL import Image
 from transformers import LlavaForConditionalGeneration, AutoProcessor
-from src.retrieval import VisualRetriever
+from visual_rag.retrieval import VisualRetriever
 
 logger = logging.getLogger(__name__)
 

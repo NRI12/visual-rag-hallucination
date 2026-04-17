@@ -10,8 +10,8 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.retrieval import CLIPEncoder, SceneGraphIndexer, load_visual_genome_facts
-from src.utils import setup_logging, load_config
+from visual_rag.retrieval import CLIPEncoder, SceneGraphIndexer, load_visual_genome_facts
+from visual_rag.utils import setup_logging, load_config
 
 
 def parse_args():

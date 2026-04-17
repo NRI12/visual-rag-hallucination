@@ -8,11 +8,11 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.retrieval import CLIPEncoder, SceneGraphIndexer, VisualRetriever
-from src.models import LLaVAWithRAG
-from src.data import load_pope_all_splits, HallusionBenchDataset
-from src.evaluation import POPEEvaluator, HallusionEvaluator
-from src.utils import setup_logging, load_config, set_seed
+from visual_rag.retrieval import CLIPEncoder, SceneGraphIndexer, VisualRetriever
+from visual_rag.models import LLaVAWithRAG
+from visual_rag.data import load_pope_all_splits, HallusionBenchDataset
+from visual_rag.evaluation import POPEEvaluator, HallusionEvaluator
+from visual_rag.utils import setup_logging, load_config, set_seed
 
 
 def parse_args():
