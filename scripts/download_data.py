@@ -78,37 +78,42 @@ def download_hallusionbench(data_dir: str) -> bool:
         os.remove(zip_path)
         print("  JSON OK ✓")
 
-    # Step 2: Images from HuggingFace dataset
+    # Step 2: Images via git clone (GitHub LFS)
     img_dir = os.path.join(hb_dir, "images")
     n_existing = sum(len(f) for _, _, f in os.walk(img_dir)) if os.path.exists(img_dir) else 0
 
     if n_existing < 100:
-        print("  Downloading HallusionBench images from HuggingFace...")
+        print("  Downloading HallusionBench images via git clone (LFS)...")
+        import subprocess
+        clone_dir = "/tmp/HallusionBench_repo"
         try:
-            from huggingface_hub import snapshot_download
-            snapshot_download(
-                repo_id="junyangwang0410/HallusionBench",
-                repo_type="dataset",
-                local_dir=hb_dir,
-                ignore_patterns=["*.parquet", "*.arrow"],
-            )
-            n_images = sum(len(f) for _, _, f in os.walk(img_dir))
-            print(f"  Images OK ✓ ({n_images} images)")
-        except Exception as e:
-            print(f"  HuggingFace download failed: {e}")
-            print("  Trying direct image zip from GitHub LFS...")
-            # Fallback: wget from GitHub releases
-            img_url = ("https://github.com/tianyi-lab/HallusionBench/"
-                       "releases/download/v1.0/images.zip")
-            zip_path = os.path.join(hb_dir, "images.zip")
-            if download_file(img_url, zip_path, "HallusionBench images"):
-                with zipfile.ZipFile(zip_path, "r") as zf:
-                    zf.extractall(hb_dir)
-                os.remove(zip_path)
+            # Install git-lfs silently
+            subprocess.run(["git", "lfs", "install"], check=True,
+                           capture_output=True)
+            # Shallow clone to save time/space
+            if not os.path.exists(clone_dir):
+                subprocess.run([
+                    "git", "clone", "--depth", "1",
+                    "https://github.com/tianyi-lab/HallusionBench.git",
+                    clone_dir
+                ], check=True)
+            # Copy images folder
+            src_img = os.path.join(clone_dir, "images")
+            if os.path.exists(src_img):
+                shutil.copytree(src_img, img_dir, dirs_exist_ok=True)
                 n_images = sum(len(f) for _, _, f in os.walk(img_dir))
                 print(f"  Images OK ✓ ({n_images} images)")
             else:
-                print("  WARNING: Images not available — visual eval will use dummy images")
+                # LFS pointers only — pull actual files
+                subprocess.run(["git", "lfs", "pull"], cwd=clone_dir, check=True)
+                if os.path.exists(src_img):
+                    shutil.copytree(src_img, img_dir, dirs_exist_ok=True)
+                    n_images = sum(len(f) for _, _, f in os.walk(img_dir))
+                    print(f"  Images OK ✓ ({n_images} images)")
+                else:
+                    print("  WARNING: No images/ folder in repo — using dummy images for eval")
+        except Exception as e:
+            print(f"  WARNING: git clone failed ({e}) — using dummy images for eval")
     else:
         print(f"  HallusionBench images already present ({n_existing} files), skipping.")
 
