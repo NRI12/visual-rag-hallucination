@@ -10,8 +10,8 @@ model:
 retrieval:
   index_path: "data/vg_faiss.index"
   metadata_path: "data/vg_metadata.json"
-  top_k: 5                                  # facts retrieved per query
-  score_threshold: 0.25                     # cosine sim cutoff
+  top_k: 3                                  # fewer facts = less noise
+  score_threshold: 0.30                     # higher threshold = more relevant facts
 
 data:
   data_root: "data"

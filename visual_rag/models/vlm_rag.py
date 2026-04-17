@@ -7,10 +7,10 @@ from visual_rag.retrieval import VisualRetriever
 
 logger = logging.getLogger(__name__)
 
+# Additive framing: facts help the model, not restrict it
 SYSTEM_PROMPT = (
-    "You are a precise visual assistant. "
-    "Use ONLY what is visible in the image to answer. "
-    "If a fact is not supported by the image, say it is not present."
+    "You are a helpful visual assistant. "
+    "Use the image and any provided visual context to answer accurately."
 )
 
 

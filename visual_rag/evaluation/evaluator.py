@@ -84,7 +84,20 @@ class HallusionEvaluator:
                 answer = ""
 
             pred = answer.lower().strip()
-            is_correct = gt in pred or pred.startswith(gt)
+            gt_norm = gt.lower().strip()
+
+            # Normalize: handle yes/no/true/false/0/1 variants
+            def normalize(s):
+                s = s.lower().strip().rstrip(".,!?")
+                if s in ("yes", "true", "1", "correct"):  return "yes"
+                if s in ("no",  "false","0", "incorrect"): return "no"
+                return s
+
+            is_correct = (
+                normalize(pred) == normalize(gt_norm)
+                or normalize(pred[:10]) == normalize(gt_norm)
+                or gt_norm in pred
+            )
             if is_correct:
                 correct += 1
             records.append({

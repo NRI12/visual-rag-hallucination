@@ -26,13 +26,16 @@ class VisualRetriever:
         return facts
 
     def format_context(self, facts: List[Tuple[str, float]]) -> str:
-        """Format retrieved facts as a natural language context string."""
+        """Format retrieved facts as a concise grounding hint."""
         if not facts:
             return ""
-        lines = ["Visual context from scene analysis:"]
+        # Only keep high-confidence unique facts
+        seen, lines = set(), []
         for fact, score in facts:
-            lines.append(f"  - {fact}")
-        return "\n".join(lines)
+            if fact not in seen:
+                lines.append(f"- {fact}")
+                seen.add(fact)
+        return "Relevant visual facts:\n" + "\n".join(lines)
 
     def augment_prompt(self, question: str, image: Image.Image,
                        system_prefix: Optional[str] = None) -> str:
@@ -40,12 +43,12 @@ class VisualRetriever:
         facts = self.retrieve(image, question)
         context = self.format_context(facts)
 
-        if context:
-            prompt = f"{context}\n\nBased on the image and the above visual context, answer:\n{question}"
-        else:
-            prompt = question
-
+        parts = []
         if system_prefix:
-            prompt = f"{system_prefix}\n\n{prompt}"
+            parts.append(system_prefix)
+        if context:
+            parts.append(context)
+        parts.append(question)
 
+        prompt = "\n\n".join(parts)
         return prompt, facts
