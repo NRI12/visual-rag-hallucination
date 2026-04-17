@@ -70,10 +70,17 @@ class HallusionEvaluator:
 
         for item in tqdm(dataset, desc=f"[{model_tag}] HallusionBench"):
             image = item.get("image")
-            if image is None:
-                continue
             question = item["question"]
             gt = item["gt_answer"]
+
+            # Skip items with no question
+            if not question:
+                continue
+
+            # For text-only items (no image), use a dummy white image
+            if image is None:
+                from PIL import Image as PILImage
+                image = PILImage.new("RGB", (224, 224), color=(255, 255, 255))
 
             if hasattr(self.model, "generate"):
                 if hasattr(self.model, "retriever"):

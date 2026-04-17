@@ -71,7 +71,8 @@ class VisualRetriever:
             if fact not in seen:
                 lines.append(f"- {fact}")
                 seen.add(fact)
-        return "Relevant visual facts:\n" + "\n".join(lines)
+        return ("Background visual knowledge (from knowledge base, "
+                "NOT necessarily about this image):\n" + "\n".join(lines))
 
     def augment_prompt(self, question: str, image: Image.Image,
                        system_prefix: Optional[str] = None) -> Tuple[str, List]:

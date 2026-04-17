@@ -100,9 +100,13 @@ class HallusionBenchDataset(Dataset):
 
         item["image"] = None
         if img_src:
+            # HallusionBench image paths: "images/VD_E1/VD_E1_1.png"
+            # or just filename, or category/filename
             candidates = [
                 os.path.join(self.data_dir, img_src),
                 os.path.join(self.data_dir, "images", img_src),
+                os.path.join(self.data_dir, "images",
+                             os.path.basename(img_src)),
                 os.path.join(self.data_dir, os.path.basename(img_src)),
             ]
             for path in candidates:

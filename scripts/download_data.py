@@ -56,7 +56,11 @@ def download_pope(data_dir: str) -> bool:
 def download_hallusionbench(data_dir: str) -> bool:
     hb_dir = os.path.join(data_dir, "hallusionbench")
     marker = os.path.join(hb_dir, "HallusionBench.json")
-    if os.path.exists(marker):
+    # Also check if images already present
+    img_dir = os.path.join(hb_dir, "images")
+    has_images = os.path.exists(img_dir) and len(os.listdir(img_dir)) > 0
+
+    if os.path.exists(marker) and has_images:
         print("  HallusionBench already downloaded, skipping.")
         return True
 
@@ -64,7 +68,7 @@ def download_hallusionbench(data_dir: str) -> bool:
     zip_path = "/tmp/hallusionbench.zip"
     url = "https://github.com/tianyi-lab/HallusionBench/archive/refs/heads/main.zip"
 
-    if not download_file(url, zip_path, "HallusionBench"):
+    if not download_file(url, zip_path, "HallusionBench (~300MB)"):
         return False
 
     print("  Extracting HallusionBench...")
@@ -72,6 +76,7 @@ def download_hallusionbench(data_dir: str) -> bool:
         zf.extractall("/tmp/")
 
     src = "/tmp/HallusionBench-main"
+    # Copy ALL contents including images/ subdirectory
     for item in os.listdir(src):
         s = os.path.join(src, item)
         d = os.path.join(hb_dir, item)
@@ -81,7 +86,11 @@ def download_hallusionbench(data_dir: str) -> bool:
             shutil.copy2(s, d)
 
     os.remove(zip_path)
-    print("  HallusionBench OK ✓")
+    # Check images were extracted
+    n_images = sum(
+        len(files) for _, _, files in os.walk(img_dir)
+    ) if os.path.exists(img_dir) else 0
+    print(f"  HallusionBench OK ✓ ({n_images} images)")
     return True
 
 

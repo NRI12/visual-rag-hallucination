@@ -7,10 +7,12 @@ from visual_rag.retrieval import VisualRetriever
 
 logger = logging.getLogger(__name__)
 
-# Additive framing: facts help the model, not restrict it
+# Knowledge-base framing: facts are background knowledge, NOT claims about THIS image
 SYSTEM_PROMPT = (
-    "You are a helpful visual assistant. "
-    "Use the image and any provided visual context to answer accurately."
+    "You are a careful visual assistant. "
+    "The visual facts below come from a general knowledge base — "
+    "they describe common visual patterns, NOT necessarily this specific image. "
+    "Always base your answer primarily on what you actually see in the image."
 )
 
 
