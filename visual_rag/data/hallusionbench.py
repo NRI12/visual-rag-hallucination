@@ -1,6 +1,5 @@
 """HallusionBench dataset loader.
 Source: https://github.com/tianyi-lab/HallusionBench
-Contains 1,129 visual questions testing illusions, spatial reasoning, etc.
 """
 import json
 import os
@@ -11,47 +10,109 @@ from torch.utils.data import Dataset
 logger = logging.getLogger(__name__)
 
 
+def normalize_gt(answer) -> str:
+    """Normalize gt_answer to 'yes' or 'no' string."""
+    if isinstance(answer, (int, float)):
+        return "yes" if int(answer) == 1 else "no"
+    s = str(answer).lower().strip().rstrip(".,!?")
+    if s in ("yes", "true", "1", "correct"):
+        return "yes"
+    if s in ("no", "false", "0", "incorrect"):
+        return "no"
+    return s
+
+
 class HallusionBenchDataset(Dataset):
     """
     HallusionBench: tests VLM robustness to visual hallucinations.
-    Each sample: image (or None for text-only), question, gt_answer.
+    gt_answer is normalized to 'yes'/'no' string.
     """
 
     def __init__(self, data_dir: str, max_samples: int = None):
-        json_path = os.path.join(data_dir, "HallusionBench.json")
+        # Try multiple possible JSON filenames
+        json_path = None
+        for fname in ["HallusionBench.json", "hallusionbench.json",
+                      "HallusionBench_anno.json", "annotation.json"]:
+            candidate = os.path.join(data_dir, fname)
+            if os.path.exists(candidate):
+                json_path = candidate
+                break
+
+        if json_path is None:
+            files = os.listdir(data_dir) if os.path.exists(data_dir) else []
+            raise FileNotFoundError(
+                f"HallusionBench JSON not found in {data_dir}. "
+                f"Files present: {files[:15]}"
+            )
+
+        logger.info(f"Loading HallusionBench from {json_path}")
         with open(json_path) as f:
             raw = json.load(f)
 
+        # Handle both list and dict-of-lists formats
+        if isinstance(raw, dict):
+            items = []
+            for v in raw.values():
+                if isinstance(v, list):
+                    items.extend(v)
+        else:
+            items = raw
+
         self.data = []
         self.data_dir = data_dir
-        for item in raw:
-            # Some items have no image (language-only hallucinations)
+
+        for idx, item in enumerate(items):
+            gt_raw = (item.get("gt_answer") or item.get("answer")
+                      or item.get("label") or "")
+            gt = normalize_gt(gt_raw)
+
+            img_src = (item.get("image_src") or item.get("image_path")
+                       or item.get("image") or "")
+            img_src = img_src.lstrip("/") if img_src else ""
+
             self.data.append({
-                "question": item.get("question", ""),
-                "gt_answer": str(item.get("gt_answer", "")).lower(),
-                "gt_answer_details": item.get("gt_answer_details", ""),
-                "image_src": item.get("image_src", None),
-                "category": item.get("category", ""),
-                "subcategory": item.get("sub_category", ""),
-                "item_id": item.get("index", len(self.data)),
+                "question":      item.get("question", item.get("text", "")),
+                "gt_answer":     gt,
+                "gt_answer_raw": gt_raw,
+                "image_src":     img_src,
+                "category":      item.get("category", ""),
+                "subcategory":   item.get("sub_category", ""),
+                "item_id":       item.get("index", idx),
             })
 
         if max_samples:
             self.data = self.data[:max_samples]
-        logger.info(f"Loaded {len(self.data)} HallusionBench samples.")
+
+        with_img = sum(1 for d in self.data if d["image_src"])
+        logger.info(f"Loaded {len(self.data)} HallusionBench samples "
+                    f"({with_img} with images).")
+
+        # Warn if no images found
+        if with_img == 0:
+            logger.warning("No image paths found — check dataset structure!")
 
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, idx):
         item = self.data[idx].copy()
-        img_src = item.get("image_src")
+        img_src = item.get("image_src", "")
+
+        item["image"] = None
         if img_src:
-            img_path = os.path.join(self.data_dir, img_src)
-            try:
-                item["image"] = Image.open(img_path).convert("RGB")
-            except Exception:
-                item["image"] = None
-        else:
-            item["image"] = None
+            candidates = [
+                os.path.join(self.data_dir, img_src),
+                os.path.join(self.data_dir, "images", img_src),
+                os.path.join(self.data_dir, os.path.basename(img_src)),
+            ]
+            for path in candidates:
+                if os.path.exists(path):
+                    try:
+                        item["image"] = Image.open(path).convert("RGB")
+                    except Exception as e:
+                        logger.warning(f"Cannot open {path}: {e}")
+                    break
+            else:
+                logger.debug(f"Image not found for: {img_src}")
+
         return item
