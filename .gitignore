@@ -5,8 +5,8 @@ dist/
 build/
 .eggs/
 
-# Data (too large for git)
-data/
+# Data (too large for git) — only at repo root, NOT visual_rag/data/
+/data/
 *.index
 *.json.zip
 
